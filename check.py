@@ -5,7 +5,7 @@
   WATCH_DATES   감시할 날짜, 쉼표 구분       예) 2026-11-13,2026-11-14,2026-12-05
   ACTIVE_HOURS  감시할 시간대(한국시간)      예) 07-24  /  09-18  /  비우면 24시간
   FACILITIES    감시할 시설 목록 (비우면 아래 DEFAULT_FACILITIES)
-                형식: 이름:menuCd:roomType, 쉼표 구분
+                형식: 이름:menuCd:roomType[:시간대], 쉼표 구분 (시간대 생략 시 ACTIVE_HOURS 따름)
   REMIND_MIN    예약 가능 상태가 계속될 때 재알림 간격(분). 비우거나 0=매 실행마다, -1=끔
   TEST_ALERT    1 이면 실행할 때마다 현재 상태를 알림으로 보냄 (테스트용)
 Secret:
@@ -17,8 +17,8 @@ import requests
 from bs4 import BeautifulSoup
 
 KST = datetime.timezone(datetime.timedelta(hours=9))
-DEFAULT_FACILITIES = ("수련관 기숙사:DOM_000002402003001000:1001,"
-                      "선운산유스호스텔:DOM_000002402002000000:1001")
+DEFAULT_FACILITIES = ("수련관 기숙사:DOM_000002402003001000:1001:09-15,"
+                      "선운산유스호스텔:DOM_000002402002000000:1001:09-22")
 NTFY_TOPIC = os.environ["NTFY_TOPIC"]
 STATE_FILE = "state.json"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130 Safari/537.36"}
@@ -51,20 +51,22 @@ def parse_facilities():
     out = []
     for item in filter(None, (x.strip() for x in raw.split(","))):
         parts = [p.strip() for p in item.split(":")]
-        if len(parts) != 3 or not all(parts):
-            raise ConfigError(f"FACILITIES 형식 오류: '{item}' (이름:menuCd:roomType)")
+        if len(parts) not in (3, 4) or not all(parts):
+            raise ConfigError(f"FACILITIES 형식 오류: '{item}' (이름:menuCd:roomType[:09-15])")
+        if len(parts) == 3:
+            parts.append("")
         out.append(tuple(parts))
     return out
 
 
-def in_active_hours(now):
-    spec = (os.getenv("ACTIVE_HOURS") or "").strip()
+def in_active_hours(now, spec=None, name="ACTIVE_HOURS"):
+    spec = ((os.getenv("ACTIVE_HOURS") if spec is None else spec) or "").strip()
     if not spec:
         return True
     try:
         start, end = (int(x) for x in spec.split("-"))
     except ValueError:
-        raise ConfigError(f"ACTIVE_HOURS 형식 오류: '{spec}' (예: 07-24)")
+        raise ConfigError(f"{name} 시간대 형식 오류: '{spec}' (예: 09-15)")
     h = now.hour
     return start <= h < end if start < end else (h >= start or h < end)
 
@@ -105,6 +107,8 @@ def main():
 
     try:
         facilities = parse_facilities()
+        for n, _, _, hrs in facilities:
+            in_active_hours(now, hrs, n)          # 형식 검사
         if not test and not in_active_hours(now):
             print(f"{now:%H:%M} 감시 시간대 아님 → 건너뜀")
             return
@@ -138,12 +142,16 @@ def main():
         by_month[d.strftime("%Y-%m")].append(d)
 
     keep, status = set(), []
-    for name, menu, room in facilities:
+    for name, menu, room, hrs in facilities:
         fac = f"{menu}:{room}"
+        off_hours = not test and not in_active_hours(now, hrs, name)
         for month, ds in by_month.items():
             keys = {d: f"{fac}:{d.isoformat()}" for d in ds}
-            keep.update(keys.values())         # 접속 실패해도 기존 상태 유지
+            keep.update(keys.values())         # 접속 실패/시간 외에도 기존 상태 유지
             url = month_url(menu, room, month)
+            if off_hours:
+                print(f"[{name}] 예약 가능 시간({hrs}) 아님 → 건너뜀")
+                continue
 
             try:
                 r = requests.get(url, headers=HEADERS, timeout=20)

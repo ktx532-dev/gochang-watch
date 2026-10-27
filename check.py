@@ -6,6 +6,7 @@
   ACTIVE_HOURS  감시할 시간대(한국시간)      예) 07-24  /  09-18  /  비우면 24시간
   FACILITIES    감시할 시설 목록 (비우면 아래 DEFAULT_FACILITIES)
                 형식: 이름:menuCd:roomType, 쉼표 구분
+  REMIND_MIN    예약 가능 상태가 계속될 때 재알림 간격(분). 비우거나 0=매 실행마다, -1=끔
   TEST_ALERT    1 이면 실행할 때마다 현재 상태를 알림으로 보냄 (테스트용)
 Secret:
   NTFY_TOPIC    ntfy 구독 주제
@@ -22,6 +23,11 @@ NTFY_TOPIC = os.environ["NTFY_TOPIC"]
 STATE_FILE = "state.json"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130 Safari/537.36"}
 FAIL_ALERT_AT = (1, 3)   # 연속 실패 1회, 3회째에 알림
+# 가능 상태가 이어질 때 재알림 간격(분). 0 = 매 실행마다, -1 = 재알림 끔
+try:
+    REMIND_MIN = int((os.getenv("REMIND_MIN") or "0").strip())
+except ValueError:
+    REMIND_MIN = 0
 
 
 class ConfigError(Exception):
@@ -115,6 +121,11 @@ def main():
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, encoding="utf-8") as f:
             state = json.load(f)
+    # 날짜/시설 설정이 바뀌면 처음부터 다시 시작 (감시 시작·🔥 다시 발송)
+    config = f"{os.getenv('WATCH_DATES') or ''}|{os.getenv('FACILITIES') or ''}"
+    if state.get("config") != config:
+        print("설정 변경 감지 → 상태 초기화")
+        state = {"config": config}
     cells = state.setdefault("cells", {})
     fails = state.get("fails")
     if not isinstance(fails, dict):          # 구버전 state 호환
@@ -170,15 +181,23 @@ def main():
                 day_url = f"{url}&searchDay={d.day:02d}"
                 print(f"{label}: {'예약가능' if avail else '불가'}  href={href}")
 
+                last = (prev or {}).get("last")   # 마지막 🔥 알림 시각 (epoch 초)
                 if avail and (prev is None or not prev["avail"]):
                     push(f"🔥 {label} 예약 가능!", click=day_url)
+                    last = now.timestamp()
+                elif avail and REMIND_MIN >= 0 and (last is None or
+                        now.timestamp() - last >= REMIND_MIN * 60 - 30):
+                    push(f"🔥 {label} 아직 예약 가능! (재알림)", click=day_url)
+                    last = now.timestamp()
                 elif prev is None:
                     push(f"✅ 고창 감시 시작 {label}: 현재 불가", priority="default", click=url)
+                elif not avail and prev["avail"]:
+                    push(f"⚪ {label} 다시 마감됨", priority="low", click=url)
                 elif not avail and raw != prev["raw"]:
                     push(f"{label} 칸 상태 변경 (확인 필요)", priority="high", click=url)
 
                 status.append(f"{label}: {'🟢 예약가능' if avail else '⚪ 불가'}")
-                cells[key] = {"raw": raw, "avail": avail}
+                cells[key] = {"raw": raw, "avail": avail, "last": last if avail else None}
 
     for k in list(cells):
         if k not in keep:

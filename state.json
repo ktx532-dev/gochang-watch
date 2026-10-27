@@ -1,0 +1,21 @@
+{
+ "cells": {
+  "DOM_000002402003001000:1001:2026-11-13": {
+   "raw": "<td class=\"condition3\"><a href=\"#bbs_skin\">13</a> </td>",
+   "avail": false
+  },
+  "DOM_000002402003001000:1001:2026-11-14": {
+   "raw": "<td class=\"sat condition3\"><a href=\"#bbs_skin\">14</a> </td>",
+   "avail": false
+  },
+  "DOM_000002402002000000:1001:2026-11-13": {
+   "raw": "<td class=\"condition3\"><a href=\"#bbs_skin\">13</a> </td>",
+   "avail": false
+  },
+  "DOM_000002402002000000:1001:2026-11-14": {
+   "raw": "<td class=\"sat condition3\"><a href=\"#bbs_skin\">14</a> </td>",
+   "avail": false
+  }
+ },
+ "fails": 0
+}

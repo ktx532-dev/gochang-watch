@@ -140,7 +140,7 @@ def main():
             except Exception as e:
                 fails[fac] = fails.get(fac, 0) + 1
                 print(f"[{name}] 접속 실패({fails[fac]}):", e)
-                if fails[fac] in FAIL_ALERT_AT:
+                if test or fails[fac] in FAIL_ALERT_AT:
                     push(f"⚠️ [{name}] 사이트 접속 실패 ({fails[fac]}회 연속)", priority="default")
                 for d in ds:
                     status.append(f"[{name}] {d.month}/{d.day}: ❓ 접속 실패")

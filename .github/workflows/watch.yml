@@ -29,6 +29,7 @@ jobs:
           ACTIVE_HOURS: ${{ vars.ACTIVE_HOURS }}
           FACILITIES: ${{ vars.FACILITIES }}
           TEST_ALERT: ${{ vars.TEST_ALERT }}
+          REMIND_MIN: ${{ vars.REMIND_MIN }}
         run: python check.py
       - name: Save state
         run: |

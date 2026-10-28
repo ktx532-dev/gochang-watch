@@ -5,10 +5,16 @@
    "raw": "<td class=\"sat condition3\"><a href=\"#bbs_skin\">14</a> </td>",
    "avail": false,
    "last": null
+  },
+  "DOM_000002402003001000:1001:2026-11-14": {
+   "raw": "<td class=\"sat condition3\"><a href=\"#bbs_skin\">14</a> </td>",
+   "avail": false,
+   "last": null
   }
  },
  "fails": {
-  "DOM_000002402002000000:1001": 0
+  "DOM_000002402002000000:1001": 0,
+  "DOM_000002402003001000:1001": 0
  },
  "broken": {}
 }

@@ -2,9 +2,9 @@
  "config": "2026-11-14|",
  "cells": {
   "DOM_000002402002000000:1001:2026-11-14": {
-   "raw": "<td class=\"sat condition3\"><a href=\"#bbs_skin\">14</a> </td>",
-   "avail": false,
-   "last": null
+   "raw": "<td class=\"sat condition2\"><a href=\"/index.gochang?menuCd=DOM_000002402002000000&amp;searchDay=14&amp;resvSche=2026-11&amp;roomType=1001\">14</a> </td>",
+   "avail": true,
+   "last": 1794358714.653364
   },
   "DOM_000002402003001000:1001:2026-11-14": {
    "raw": "<td class=\"sat condition3\"><a href=\"#bbs_skin\">14</a> </td>",

@@ -2,7 +2,7 @@
  "config": "2026-11-28|",
  "cells": {
   "DOM_000002402003001000:1001:2026-11-28": {
-   "raw": "<td class=\"sat condition3\"><a href=\"#bbs_skin\">28</a> </td>",
+   "raw": "<td class=\"sat condition3 condition4\"><a href=\"#bbs_skin\">28</a> </td>",
    "avail": false,
    "last": null
   },
